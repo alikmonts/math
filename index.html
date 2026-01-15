@@ -368,22 +368,37 @@
             const usedPairs = new Set();
             for (let i = 0; i < count; i++) {
                 let n1, n2, op, ans, key, found = false;
-                while(!found) {
+                let attempts = 0; // Чтобы не зависнуть в цикле
+        
+                while(!found && attempts < 100) {
+                    attempts++;
                     op = Math.random() > 0.5 ? '+' : '-';
+                    
                     if (op === '+') {
-                        ans = Math.floor(Math.random() * (max - 4)) + 4;
+                        ans = Math.floor(Math.random() * (max - 10)) + 10; // Ответ хотя бы от 10
                         n1 = Math.floor(Math.random() * (ans - 4)) + 2;
                         n2 = ans - n1;
+                        
+                        // ЛОГИКА: Исключаем слишком легкие (где n1 или n2 меньше 3)
+                        if (n1 < 3 || n2 < 3) continue; 
+                        
                         key = `sum_${Math.min(n1, n2)}_${Math.max(n1, n2)}`;
                     } else {
-                        n1 = Math.floor(Math.random() * (max - 3)) + 4;
-                        n2 = Math.floor(Math.random() * (n1 - 3)) + 2;
+                        n1 = Math.floor(Math.random() * (max - 10)) + 10; // Первое число хотя бы от 10
+                        n2 = Math.floor(Math.random() * (n1 - 4)) + 2;
                         ans = n1 - n2;
+        
+                        // ЛОГИКА: Исключаем вычитание единицы или слишком мелких чисел
+                        if (n2 < 3 || ans < 3) continue;
+        
                         key = `sub_${n1}_${n2}`;
                     }
+        
                     if (!usedPairs.has(key)) {
-                        usedPairs.add(key); found = true;
+                        usedPairs.add(key);
+                        found = true;
                         generatedProblems.push({ id: i, ans: ans });
+                        
                         const div = document.createElement('div');
                         div.className = 'problem-item';
                         div.innerHTML = `<span class="problem-text">${n1} ${op} ${n2} = </span><input type="number" pattern="[0-9]*" inputmode="numeric" class="math-input" id="inp-${i}" data-id="${i}">`;
@@ -391,7 +406,8 @@
                     }
                 }
             }
-
+        
+            // Блок активации кнопки
             const activeInputs = document.querySelectorAll('.math-input');
             activeInputs.forEach((inp, idx) => {
                 ['input', 'change', 'keyup'].forEach(evt => {
@@ -400,7 +416,6 @@
                         checkBtn.disabled = !allFilled;
                     });
                 });
-
                 inp.addEventListener('keydown', (e) => {
                     if(e.key === 'Enter') {
                         const next = document.getElementById(`inp-${idx+1}`);
