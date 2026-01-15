@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Тренажер</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#5d5fef">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --primary-color: #5d5fef;
+            --correct-color: #e3f9e5;
+            --correct-border: #2bad62;
+            --wrong-color: #ffeef0;
+            --wrong-border: #ff4757;
+            --text-color: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0; padding: 0;
+            height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; /* Изменено для мобильных */
+        }
+
+        /* Адаптация контейнеров: убираем фиксированные 1006px */
+        header, .grid-wrapper, .controls { 
+            width: 100%; 
+            max-width: 1000px; 
+            padding-left: 15px; 
+            padding-right: 15px; 
+            box-sizing: border-box; 
+            text-align: center; 
+        }
+
+        header { padding-top: 10px; flex-shrink: 0; }
+        h1 { margin: 0; font-size: 1.4rem; color: var(--primary-color); }
+        
+        .record-display { font-size: 0.9rem; color: #ff9f43; font-weight: bold; margin: 5px 0; height: 1.2em; }
+
+        .settings-container {
+            display: flex; flex-direction: row; gap: 20px; /* Уменьшен gap */
+            justify-content: center; margin-top: 5px; align-items: center;
+            flex-wrap: wrap; /* Чтобы на мобильных переносилось */
+        }
+
+        .settings-row { display: flex; gap: 10px; align-items: center; font-size: 0.95rem; }
+        select { padding: 4px 12px; border-radius: 10px; border: 2px solid #ddd; outline: none; cursor: pointer; }
+
+        .grid-wrapper {
+            flex-grow: 1;
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 10px 0;
+            overflow-y: auto; /* Добавлена прокрутка для большого кол-ва примеров */
+        }
+
+        .grid-container { 
+            display: grid; 
+            gap: 10px; 
+            width: 100%; 
+        }
+
+        /* Мобильная адаптация сетки через Media Queries */
+        @media (max-width: 600px) {
+            .grid-container {
+                grid-template-columns: repeat(1, 1fr) !important; /* На телефонах в одну колонку */
+            }
+            .problem-text { font-size: 1.4rem; } /* Крупнее для пальцев */
+            input { width: 80px; height: 45px; font-size: 1.4rem; }
+            .controls { gap: 15px; }
+            button { padding: 12px 20px; font-size: 1rem; }
+        }
+
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr) !important; /* На планшетах в две */
+            }
+        }
+
+        .problem-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: white; padding: 10px 15px; border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .problem-text {
+            font-size: 1.2rem; font-weight: 600;
+            flex-grow: 1; white-space: nowrap;
+            min-width: 95px;
+            text-align: left;
+        }
+
+        input {
+            width: 70px; height: 38px; font-size: 1.2rem;
+            text-align: center; border: 2px solid #e0e0e0;
+            border-radius: 6px; outline: none;
+            -webkit-appearance: none; /* Убирает системные тени iOS */
+        }
+
+        input:disabled { background-color: #f0f0f0; color: #555; }
+        input.correct { background-color: var(--correct-color) !important; border-color: var(--correct-border) !important; color: var(--correct-border); }
+        input.incorrect { background-color: var(--wrong-color) !important; border-color: var(--wrong-border) !important; color: var(--wrong-border); }
+
+        .controls {
+            padding-bottom: 20px; padding-top: 10px;
+            display: flex; justify-content: center; align-items: center; gap: 30px; flex-shrink: 0;
+            background: var(--bg-color);
+        }
+
+        #timer {
+            font-size: 1.8rem; font-family: monospace; font-weight: bold;
+            background: #fff; padding: 5px 15px; border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); min-width: 90px; text-align: center;
+        }
+
+        button {
+            border: none; padding: 12px 30px; font-size: 1.1rem;
+            border-radius: 50px; cursor: pointer; font-weight: bold;
+            text-transform: uppercase; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        
+        button:active { transform: scale(0.95); }
+
+        .btn-start { background: var(--primary-color); color: white; }
+        .btn-check { background: #2bad62; color: white; }
+        .btn-fix { background: #ff9f43; color: white; }
+        .btn-restart { background: #6c757d; color: white; margin-top: 15px; }
+        button:disabled { background: #dfe6e9 !important; color: #b2bec3 !important; }
+
+        .win-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
+
+        .win-message {
+            background: white; padding: 30px; border-radius: 20px;
+            text-align: center; border: 4px solid var(--correct-border);
+            width: 80%; max-width: 400px;
+        }
+
+        .hidden { display: none !important; }
+
+        @keyframes fall { 0% {transform:translateY(-10vh) rotate(0deg);} 100% {transform:translateY(110vh) rotate(720deg);} }
+        .confetti { position: fixed; width: 10px; height: 10px; z-index: 2001; top: -10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Математика</h1>
+        <div id="record-display" class="record-display"></div>
+        
+        <div class="settings-container" id="settings-area">
+            <div class="settings-row">
+                <label>До:</label>
+                <select id="difficulty">
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="settings-row">
+                <label>Кол-во:</label>
+                <select id="quantity">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid-wrapper">
+        <div class="grid-container" id="problems-container"></div>
+    </div>
+
+    <div class="controls">
+        <div id="timer">00:00</div>
+        <button id="start-btn" class="btn-start">СТАРТ</button>
+        <button id="check-btn" class="btn-check hidden" disabled>ПРОВЕРИТЬ</button>
+        <button id="fix-btn" class="btn-fix hidden">ИСПРАВИТЬ</button>
+    </div>
+
+    <div id="win-screen" class="win-overlay hidden">
+        <div class="win-message">
+            <h2 id="win-title" style="color: var(--correct-border); margin: 0;"></h2>
+            <p id="win-text" style="font-size: 1.3rem; font-weight: bold;"></p>
+            <button class="btn-restart" onclick="location.reload()">ЕЩЕ РАЗ</button>
+        </div>
+    </div>
+
+    <script>
+        // Регистрация Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log("SW Registered"));
+        }
+
+        const container = document.getElementById('problems-container');
+        const startBtn = document.getElementById('start-btn');
+        const checkBtn = document.getElementById('check-btn');
+        const fixBtn = document.getElementById('fix-btn');
+        const timerDisplay = document.getElementById('timer');
+        const difficultySelect = document.getElementById('difficulty');
+        const quantitySelect = document.getElementById('quantity');
+        const recordDisplay = document.getElementById('record-display');
+        
+        let generatedProblems = [];
+        let startTime, timerInterval, elapsedBeforePause = 0;
+
+        function updateRecord() {
+            const best = localStorage.getItem(`best-${difficultySelect.value}-${quantitySelect.value}`);
+            recordDisplay.textContent = best ? `🏆 Рекорд: ${formatTime(parseInt(best))}` : "Удачи!";
+        }
+
+        [difficultySelect, quantitySelect].forEach(s => s.addEventListener('change', updateRecord));
+        updateRecord();
+
+        function formatTime(ms) {
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        function renderPlaceholders() {
+            const count = parseInt(quantitySelect.value);
+            // Базовая сетка для десктопа, на мобильных переопределится через CSS
+            container.style.gridTemplateColumns = count <= 20 ? `repeat(2, 1fr)` : (count <= 30 ? `repeat(3, 1fr)` : `repeat(4, 1fr)`);
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const div = document.createElement('div');
+                div.className = 'problem-item placeholder';
+                div.innerHTML = `<span class="problem-text">? ± ? = </span><input disabled>`;
+                container.appendChild(div);
+            }
+        }
+        quantitySelect.addEventListener('change', renderPlaceholders);
+        renderPlaceholders();
+
+        startBtn.addEventListener('click', () => {
+            document.getElementById('settings-area').style.visibility = 'hidden';
+            startBtn.classList.add('hidden');
+            checkBtn.classList.remove('hidden');
+            generateSafeProblems();
+            startTimer();
+        });
+
+        function generateSafeProblems() {
+            const count = parseInt(quantitySelect.value);
+            const max = parseInt(difficultySelect.value);
+            generatedProblems = [];
+            container.innerHTML = '';
+            
+            const usedPairs = new Set();
+            let simpleCount = 0;
+            const simpleLimit = Math.max(1, Math.floor(count * 0.1));
+
+            for (let i = 0; i < count; i++) {
+                let n1, n2, op, ans, key;
+                let found = false;
+                let attempts = 0;
+
+                while(!found && attempts < 500) {
+                    attempts++;
+                    op = Math.random() > 0.5 ? '+' : '-';
+                    
+                    if (op === '+') {
+                        ans = Math.floor(Math.random() * (max - 4)) + 4;
+                        n1 = Math.floor(Math.random() * (ans - 4)) + 2;
+                        n2 = ans - n1;
+                        key = `sum_${Math.min(n1, n2)}_${Math.max(n1, n2)}`;
+                        if (n2 <= 1) continue;
+                        if (max === 20) {
+                            const isSimple = (n1 + n2 <= 10);
+                            if (isSimple && simpleCount >= simpleLimit) continue;
+                            if (isSimple) simpleCount++;
+                        }
+                    } else {
+                        n1 = Math.floor(Math.random() * (max - 3)) + 4;
+                        n2 = Math.floor(Math.random() * (n1 - 3)) + 2;
+                        ans = n1 - n2;
+                        key = `sub_${n1}_${n2}`;
+                        if (ans <= 1) continue;
+                        if (max === 20) {
+                            const isSimple = (n1 <= 10);
+                            if (isSimple && simpleCount >= simpleLimit) continue;
+                            if (isSimple) simpleCount++;
+                        }
+                    }
+
+                    if (!usedPairs.has(key)) {
+                        usedPairs.add(key);
+                        found = true;
+                        generatedProblems.push({ id: i, ans: ans });
+                        const div = document.createElement('div');
+                        div.className = 'problem-item';
+                        div.innerHTML = `<span class="problem-text">${n1} ${op} ${n2} = </span><input type="number" pattern="[0-9]*" inputmode="numeric" id="inp-${i}" data-id="${i}">`;
+                        container.appendChild(div);
+                    }
+                }
+            }
+
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach((inp, idx) => {
+                inp.addEventListener('input', () => {
+                    checkBtn.disabled = !Array.from(inputs).every(i => i.value !== '');
+                });
+                inp.addEventListener('keydown', (e) => {
+                    if(e.key === 'Enter') {
+                        const next = document.getElementById(`inp-${idx+1}`);
+                        if(next) next.focus(); else inp.blur();
+                    }
+                });
+            });
+            if(document.getElementById('inp-0')) document.getElementById('inp-0').focus();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const current = Date.now() - startTime + elapsedBeforePause;
+                timerDisplay.textContent = formatTime(current);
+            }, 1000);
+        }
+
+        checkBtn.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            elapsedBeforePause += (Date.now() - startTime);
+
+            const inputs = document.querySelectorAll('input');
+            let correct = 0;
+            inputs.forEach(inp => {
+                inp.disabled = true;
+                if (parseInt(inp.value) === generatedProblems[parseInt(inp.dataset.id)].ans) {
+                    inp.classList.add('correct'); correct++;
+                } else {
+                    inp.classList.add('incorrect');
+                }
+            });
+
+            if (correct === generatedProblems.length) {
+                handleWin(elapsedBeforePause);
+            } else {
+                checkBtn.classList.add('hidden');
+                fixBtn.classList.remove('hidden');
+                fixBtn.textContent = `ОШИБОК: ${generatedProblems.length - correct}`;
+            }
+        });
+
+        fixBtn.addEventListener('click', () => {
+            const inputs = document.querySelectorAll('input');
+            let first = null;
+            inputs.forEach(inp => {
+                if(inp.classList.contains('incorrect')) {
+                    inp.value = ''; inp.disabled = false;
+                    inp.classList.remove('incorrect');
+                    if(!first) first = inp;
+                }
+            });
+            if(first) first.focus();
+            fixBtn.classList.add('hidden');
+            checkBtn.classList.remove('hidden');
+            checkBtn.disabled = true;
+            startTime = Date.now();
+            startTimer();
+        });
+
+        function handleWin(totalTime) {
+            const key = `best-${difficultySelect.value}-${quantitySelect.value}`;
+            const prev = localStorage.getItem(key);
+            let isNew = !prev || totalTime < parseInt(prev);
+            if(isNew) localStorage.setItem(key, totalTime);
+
+            document.getElementById('win-screen').classList.remove('hidden');
+            document.getElementById('win-title').textContent = isNew ? "НОВЫЙ РЕКОРД! 🏆" : "ВСЁ ВЕРНО!";
+            document.getElementById('win-text').textContent = `Твое время: ${formatTime(totalTime)}`;
+            launchConfetti();
+        }
+
+        function launchConfetti() {
+            for (let i = 0; i < 100; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 50%)`;
+                c.style.animation = `fall ${Math.random()*3+2}s linear forwards`;
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 5000);
+            }
+        }
+    </script>
+</body>
+</html>
