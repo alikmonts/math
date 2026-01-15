@@ -29,10 +29,9 @@
             margin: 0; padding: 0;
             height: 100vh;
             display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden; /* Изменено для мобильных */
+            overflow-x: hidden;
         }
 
-        /* Адаптация контейнеров: убираем фиксированные 1006px */
         header, .grid-wrapper, .controls { 
             width: 100%; 
             max-width: 1000px; 
@@ -48,9 +47,9 @@
         .record-display { font-size: 0.9rem; color: #ff9f43; font-weight: bold; margin: 5px 0; height: 1.2em; }
 
         .settings-container {
-            display: flex; flex-direction: row; gap: 20px; /* Уменьшен gap */
+            display: flex; flex-direction: row; gap: 20px;
             justify-content: center; margin-top: 5px; align-items: center;
-            flex-wrap: wrap; /* Чтобы на мобильных переносилось */
+            flex-wrap: wrap;
         }
 
         .settings-row { display: flex; gap: 10px; align-items: center; font-size: 0.95rem; }
@@ -60,7 +59,7 @@
             flex-grow: 1;
             display: flex; flex-direction: column; 
             padding: 10px 20px;
-            overflow-y: auto; /* Добавлена прокрутка для большого кол-ва примеров */
+            overflow-y: auto;
         }
 
         .grid-container { 
@@ -69,12 +68,11 @@
             width: 100%; 
         }
 
-        /* Мобильная адаптация сетки через Media Queries */
         @media (max-width: 600px) {
             .grid-container {
-                grid-template-columns: repeat(1, 1fr) !important; /* На телефонах в одну колонку */
+                grid-template-columns: repeat(1, 1fr) !important;
             }
-            .problem-text { font-size: 1.4rem; } /* Крупнее для пальцев */
+            .problem-text { font-size: 1.4rem; }
             input { width: 80px; height: 45px; font-size: 1.4rem; }
             .controls { gap: 15px; }
             button { padding: 12px 20px; font-size: 1rem; }
@@ -82,7 +80,7 @@
 
         @media (min-width: 601px) and (max-width: 1024px) {
             .grid-container {
-                grid-template-columns: repeat(2, 1fr) !important; /* На планшетах в две */
+                grid-template-columns: repeat(2, 1fr) !important;
             }
         }
 
@@ -103,7 +101,7 @@
             width: 70px; height: 38px; font-size: 1.2rem;
             text-align: center; border: 2px solid #e0e0e0;
             border-radius: 6px; outline: none;
-            -webkit-appearance: none; /* Убирает системные тени iOS */
+            -webkit-appearance: none;
         }
 
         input:disabled { background-color: #f0f0f0; color: #555; }
@@ -146,6 +144,10 @@
             background: white; padding: 30px; border-radius: 20px;
             text-align: center; border: 4px solid var(--correct-border);
             width: 80%; max-width: 400px;
+        }
+
+        #user-name-input {
+            width: 80%; padding: 10px; margin: 15px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 1.1rem; text-align: center;
         }
 
         .hidden { display: none !important; }
@@ -192,6 +194,15 @@
         <button id="fix-btn" class="btn-fix hidden">ИСПРАВИТЬ</button>
     </div>
 
+    <div id="name-modal" class="win-overlay hidden">
+        <div class="win-message" style="border-color: var(--primary-color);">
+            <h2 style="color: var(--primary-color); margin: 0;">Привет!</h2>
+            <p>Как тебя зовут?</p>
+            <input type="text" id="user-name-input" placeholder="Твое имя">
+            <button class="btn-start" id="save-name-btn">СОХРАНИТЬ</button>
+        </div>
+    </div>
+
     <div id="win-screen" class="win-overlay hidden">
         <div class="win-message">
             <h2 id="win-title" style="color: var(--correct-border); margin: 0;"></h2>
@@ -201,10 +212,8 @@
     </div>
 
     <script>
-        // Регистрация Service Worker для PWA
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log("SW Registered"));
+            navigator.serviceWorker.register('sw.js').then(() => console.log("SW Registered"));
         }
 
         const container = document.getElementById('problems-container');
@@ -218,33 +227,55 @@
         
         let generatedProblems = [];
         let startTime, timerInterval, elapsedBeforePause = 0;
+        
+        let userName = localStorage.getItem('user-name') || '';
+        let attemptsCount = 0;
+        let totalErrorsCount = 0;
+
+        function checkUser() {
+            if (!userName) {
+                document.getElementById('name-modal').classList.remove('hidden');
+            } else {
+                updateRecord();
+            }
+        }
+
+        document.getElementById('save-name-btn').addEventListener('click', () => {
+            const input = document.getElementById('user-name-input');
+            if (input.value.trim()) {
+                userName = input.value.trim();
+                localStorage.setItem('user-name', userName);
+                document.getElementById('name-modal').classList.add('hidden');
+                updateRecord();
+            }
+        });
 
         function updateRecord() {
             const best = localStorage.getItem(`best-${difficultySelect.value}-${quantitySelect.value}`);
+            const name = userName || "Друг";
             
             const phrases = [
-                "Ты сможешь его побить!",
-                "Попробуешь быстрее?",
-                "Отличный результат!",
-                "Ты молодец, давай ещё!",
-                "Интересно, получится быстрее?",
-                "Ты очень стараешься!",
-                "Прекрасное время!",
-                "У тебя здорово получается!",
-                "Давай за новым рекордом?",
-                "Ты всё лучше и лучше!"
+                `${name}, ты сможешь побить этот рекорд!`,
+                `Попробуешь быстрее, ${name}?`,
+                `Это отличный результат, ${name}!`,
+                `${name}, ты молодец, давай ещё!`,
+                `Интересно, ${name}, получится ли быстрее?`,
+                `${name}, ты очень стараешься!`,
+                `Прекрасное время, ${name}!`,
+                `У тебя здорово получается, ${name}!`,
+                `Давай за новым рекордом, ${name}?`,
+                `${name}, ты всё лучше и лучше!`
             ];
         
             if (best) {
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
                 recordDisplay.textContent = `🏆 Рекорд: ${formatTime(parseInt(best))}. ${randomPhrase}`;
             } else {
-                recordDisplay.textContent = "Удачи! У тебя всё получится!";
+                recordDisplay.textContent = `Удачи, ${name}! У тебя всё получится!`;
             }
         }
 
         [difficultySelect, quantitySelect].forEach(s => s.addEventListener('change', updateRecord));
-        updateRecord();
 
         function formatTime(ms) {
             const m = Math.floor(ms / 60000);
@@ -254,8 +285,6 @@
 
         function renderPlaceholders() {
             const count = parseInt(quantitySelect.value);
-            // Базовая сетка для десктопа, на мобильных переопределится через CSS
-            container.style.gridTemplateColumns = count <= 20 ? `repeat(2, 1fr)` : (count <= 30 ? `repeat(3, 1fr)` : `repeat(4, 1fr)`);
             container.innerHTML = '';
             for (let i = 0; i < count; i++) {
                 const div = document.createElement('div');
@@ -268,6 +297,8 @@
         renderPlaceholders();
 
         startBtn.addEventListener('click', () => {
+            attemptsCount = 0;
+            totalErrorsCount = 0;
             document.getElementById('settings-area').style.visibility = 'hidden';
             startBtn.classList.add('hidden');
             checkBtn.classList.remove('hidden');
@@ -282,45 +313,23 @@
             container.innerHTML = '';
             
             const usedPairs = new Set();
-            let simpleCount = 0;
-            const simpleLimit = Math.max(1, Math.floor(count * 0.1));
-
             for (let i = 0; i < count; i++) {
-                let n1, n2, op, ans, key;
-                let found = false;
-                let attempts = 0;
-
-                while(!found && attempts < 500) {
-                    attempts++;
+                let n1, n2, op, ans, key, found = false;
+                while(!found) {
                     op = Math.random() > 0.5 ? '+' : '-';
-                    
                     if (op === '+') {
                         ans = Math.floor(Math.random() * (max - 4)) + 4;
                         n1 = Math.floor(Math.random() * (ans - 4)) + 2;
                         n2 = ans - n1;
                         key = `sum_${Math.min(n1, n2)}_${Math.max(n1, n2)}`;
-                        if (n2 <= 1) continue;
-                        if (max === 20) {
-                            const isSimple = (n1 + n2 <= 10);
-                            if (isSimple && simpleCount >= simpleLimit) continue;
-                            if (isSimple) simpleCount++;
-                        }
                     } else {
                         n1 = Math.floor(Math.random() * (max - 3)) + 4;
                         n2 = Math.floor(Math.random() * (n1 - 3)) + 2;
                         ans = n1 - n2;
                         key = `sub_${n1}_${n2}`;
-                        if (ans <= 1) continue;
-                        if (max === 20) {
-                            const isSimple = (n1 <= 10);
-                            if (isSimple && simpleCount >= simpleLimit) continue;
-                            if (isSimple) simpleCount++;
-                        }
                     }
-
                     if (!usedPairs.has(key)) {
-                        usedPairs.add(key);
-                        found = true;
+                        usedPairs.add(key); found = true;
                         generatedProblems.push({ id: i, ans: ans });
                         const div = document.createElement('div');
                         div.className = 'problem-item';
@@ -356,24 +365,27 @@
         checkBtn.addEventListener('click', () => {
             clearInterval(timerInterval);
             elapsedBeforePause += (Date.now() - startTime);
+            attemptsCount++;
 
             const inputs = document.querySelectorAll('input');
-            let correct = 0;
+            let currentErrors = 0;
             inputs.forEach(inp => {
                 inp.disabled = true;
                 if (parseInt(inp.value) === generatedProblems[parseInt(inp.dataset.id)].ans) {
-                    inp.classList.add('correct'); correct++;
+                    inp.classList.add('correct');
                 } else {
                     inp.classList.add('incorrect');
+                    currentErrors++;
                 }
             });
+            totalErrorsCount += currentErrors;
 
-            if (correct === generatedProblems.length) {
+            if (currentErrors === 0) {
                 handleWin(elapsedBeforePause);
             } else {
                 checkBtn.classList.add('hidden');
                 fixBtn.classList.remove('hidden');
-                fixBtn.textContent = `ОШИБОК: ${generatedProblems.length - correct}`;
+                fixBtn.textContent = `ОШИБОК: ${currentErrors}`;
             }
         });
 
@@ -396,15 +408,39 @@
         });
 
         function handleWin(totalTime) {
-            const key = `best-${difficultySelect.value}-${quantitySelect.value}`;
+            const diff = difficultySelect.value;
+            const quant = quantitySelect.value;
+            const key = `best-${diff}-${quant}`;
             const prev = localStorage.getItem(key);
             let isNew = !prev || totalTime < parseInt(prev);
             if(isNew) localStorage.setItem(key, totalTime);
 
             document.getElementById('win-screen').classList.remove('hidden');
             document.getElementById('win-title').textContent = isNew ? "НОВЫЙ РЕКОРД! 🏆" : "ВСЁ ВЕРНО!";
-            document.getElementById('win-text').textContent = `Твое время: ${formatTime(totalTime)}`;
+            
+            document.getElementById('win-text').innerHTML = `
+                ${userName || 'Друг'}, время: ${formatTime(totalTime)}<br>
+                <span style="font-size: 0.9rem; font-weight: normal; color: #666;">
+                    Попыток: ${attemptsCount} | Всего ошибок: ${totalErrorsCount}
+                </span>
+            `;
+            
+            sendStats(userName, diff, quant, formatTime(totalTime), attemptsCount, totalErrorsCount);
             launchConfetti();
+        }
+
+        function sendStats(name, d, q, t, att, err) {
+            const formURL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSdsXsTu5ELNWJ7FpEqvuhTmeg-xB-SeM7BusWXEoJKRw_ZzLQ/formResponse";
+            const data = new FormData();
+            
+            data.append('entry.309318439', name || 'Anon'); 
+            data.append('entry.430428867', d);
+            data.append('entry.1953412766', q);
+            data.append('entry.2084879920', t);
+            data.append('entry.252348588', att); 
+            data.append('entry.214214511', err);
+
+            fetch(formURL, { method: 'POST', mode: 'no-cors', body: data });
         }
 
         function launchConfetti() {
@@ -418,6 +454,8 @@
                 setTimeout(() => c.remove(), 5000);
             }
         }
+
+        checkUser();
     </script>
 </body>
 </html>
