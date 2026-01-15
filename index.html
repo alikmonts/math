@@ -140,14 +140,31 @@
         button:disabled { background: #dfe6e9 !important; color: #b2bec3 !important; box-shadow: none; cursor: default; }
 
         .win-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000;
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; /* По умолчанию по центру */
+            z-index: 2000;
+            transition: align-items 0.3s ease; /* Плавный переход */
+        }
+
+        /* Когда клавиатура открыта, поднимаем окно выше */
+        .win-overlay.keyboard-open {
+            align-items: flex-start;
+            padding-top: 50px;
         }
 
         .win-message {
-            background: white; padding: 30px; border-radius: 20px;
-            text-align: center; border: 4px solid var(--correct-border);
-            width: 80%; max-width: 400px;
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px;
+            text-align: center; 
+            border: 4px solid var(--correct-border);
+            width: 85%; 
+            max-width: 400px;
+            box-sizing: border-box;
         }
 
         #user-name-input {
@@ -236,6 +253,30 @@
         let attemptsCount = 0;
         let totalErrorsCount = 0;
 
+        const nameInput = document.getElementById('user-name-input');
+        const nameModalOverlay = document.getElementById('name-modal');
+
+        // Поднимаем окно, когда инпут в фокусе (клавиатура вылезает)
+        nameInput.addEventListener('focus', () => {
+            nameModalOverlay.classList.add('keyboard-open');
+            // Небольшая задержка, чтобы браузер успел отрисовать клавиатуру
+            setTimeout(() => {
+                nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+
+        // Возвращаем на место, когда фокус уходит
+        nameInput.addEventListener('blur', () => {
+            nameModalOverlay.classList.remove('keyboard-open');
+        });
+        
+        // Обработка кнопки Enter на клавиатуре телефона
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('save-name-btn').click();
+            }
+        });
+
         function checkUser() {
             if (!userName) {
                 document.getElementById('name-modal').classList.remove('hidden');
@@ -243,6 +284,7 @@
                 updateRecord();
             }
         }
+        
 
         document.getElementById('save-name-btn').addEventListener('click', () => {
             const input = document.getElementById('user-name-input');
