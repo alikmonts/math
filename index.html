@@ -221,7 +221,26 @@
 
         function updateRecord() {
             const best = localStorage.getItem(`best-${difficultySelect.value}-${quantitySelect.value}`);
-            recordDisplay.textContent = best ? `🏆 Рекорд: ${formatTime(parseInt(best))}` : "Удачи!";
+            
+            const phrases = [
+                "Ты сможешь его побить!",
+                "Попробуешь быстрее?",
+                "Отличный результат!",
+                "Ты молодец, давай ещё!",
+                "Интересно, получится быстрее?",
+                "Ты очень стараешься!",
+                "Прекрасное время!",
+                "У тебя здорово получается!",
+                "Давай за новым рекордом?",
+                "Ты всё лучше и лучше!"
+            ];
+        
+            if (best) {
+                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+                recordDisplay.textContent = `🏆 Рекорд: ${formatTime(parseInt(best))}. ${randomPhrase}`;
+            } else {
+                recordDisplay.textContent = "Удачи! У тебя всё получится!";
+            }
         }
 
         [difficultySelect, quantitySelect].forEach(s => s.addEventListener('change', updateRecord));
