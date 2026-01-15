@@ -68,19 +68,28 @@
             width: 100%; 
         }
 
+        /* На мобилках теперь будет 2 колонки */
         @media (max-width: 600px) {
             .grid-container {
-                grid-template-columns: repeat(1, 1fr) !important;
+                grid-template-columns: repeat(2, 1fr) !important;
             }
-            .problem-text { font-size: 1.4rem; }
-            input { width: 80px; height: 45px; font-size: 1.4rem; }
-            .controls { gap: 15px; }
-            button { padding: 12px 20px; font-size: 1rem; }
+            .problem-text { font-size: 1.1rem; min-width: 70px; }
+            input { width: 60px; height: 40px; font-size: 1.2rem; }
+            .controls { gap: 10px; }
+            button { padding: 10px 15px; font-size: 0.9rem; }
         }
 
+        /* На планшетах — 3 колонки */
         @media (min-width: 601px) and (max-width: 1024px) {
             .grid-container {
-                grid-template-columns: repeat(2, 1fr) !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
+
+        /* На больших экранах — 4 колонки */
+        @media (min-width: 1025px) {
+            .grid-container {
+                grid-template-columns: repeat(4, 1fr) !important;
             }
         }
 
