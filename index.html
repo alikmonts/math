@@ -316,13 +316,13 @@
                 `Попробуешь быстрее на сложности ${diff}, ${name}?`,
                 `${levelText} Давай поднажмем!`,
                 `Отличная тренировка для мозгов`,
-                `${name}, покажи класс на ${diff}!`
+                `${name}, покажи класс на ${diff}!`,
                 `О, ${name}, для тебя уровень ${diff} уже слишком легкий!`
             ];
         
             if (best) {
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                recordDisplay.textContent = `🏆 Рекорд (${diff}): ${formatTime(parseInt(best))}. ${randomPhrase}`;
+                recordDisplay.textContent = `🏆 Рекорд (${diff}): ${formatTime(parseInt(best))}. &nbsp; ${randomPhrase}`;
             } else {
                 recordDisplay.textContent = `${levelText} Удачи, ${name}!`;
             }
