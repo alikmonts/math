@@ -68,29 +68,21 @@
             width: 100%; 
         }
 
-        /* На мобилках теперь будет 2 колонки */
+        /* Адаптивная сетка */
         @media (max-width: 600px) {
-            .grid-container {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
-            .problem-text { font-size: 1.1rem; min-width: 70px; }
+            .grid-container { grid-template-columns: repeat(2, 1fr) !important; }
+            .problem-text { font-size: 1.1rem; min-width: 75px; }
             input { width: 60px; height: 40px; font-size: 1.2rem; }
             .controls { gap: 10px; }
             button { padding: 10px 15px; font-size: 0.9rem; }
         }
 
-        /* На планшетах — 3 колонки */
         @media (min-width: 601px) and (max-width: 1024px) {
-            .grid-container {
-                grid-template-columns: repeat(3, 1fr) !important;
-            }
+            .grid-container { grid-template-columns: repeat(3, 1fr) !important; }
         }
 
-        /* На больших экранах — 4 колонки */
         @media (min-width: 1025px) {
-            .grid-container {
-                grid-template-columns: repeat(4, 1fr) !important;
-            }
+            .grid-container { grid-template-columns: repeat(4, 1fr) !important; }
         }
 
         .problem-item {
@@ -102,7 +94,6 @@
         .problem-text {
             font-size: 1.2rem; font-weight: 600;
             flex-grow: 1; white-space: nowrap;
-            min-width: 95px;
             text-align: left;
         }
 
@@ -142,7 +133,7 @@
         .btn-check { background: #2bad62; color: white; }
         .btn-fix { background: #ff9f43; color: white; }
         .btn-restart { background: #6c757d; color: white; margin-top: 15px; }
-        button:disabled { background: #dfe6e9 !important; color: #b2bec3 !important; }
+        button:disabled { background: #dfe6e9 !important; color: #b2bec3 !important; box-shadow: none; cursor: default; }
 
         .win-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -215,7 +206,7 @@
     <div id="win-screen" class="win-overlay hidden">
         <div class="win-message">
             <h2 id="win-title" style="color: var(--correct-border); margin: 0;"></h2>
-            <p id="win-text" style="font-size: 1.3rem; font-weight: bold;"></p>
+            <p id="win-text" style="font-size: 1.1rem; margin-top: 10px;"></p>
             <button class="btn-restart" onclick="location.reload()">ЕЩЕ РАЗ</button>
         </div>
     </div>
@@ -264,16 +255,11 @@
             const name = userName || "Друг";
             
             const phrases = [
-                `${name}, ты сможешь побить этот рекорд!`,
+                `${name}, ты сможешь побить рекорд!`,
                 `Попробуешь быстрее, ${name}?`,
                 `Это отличный результат, ${name}!`,
                 `${name}, ты молодец, давай ещё!`,
-                `Интересно, ${name}, получится ли быстрее?`,
-                `${name}, ты очень стараешься!`,
-                `Прекрасное время, ${name}!`,
-                `У тебя здорово получается, ${name}!`,
-                `Давай за новым рекордом, ${name}?`,
-                `${name}, ты всё лучше и лучше!`
+                `У тебя здорово получается, ${name}!`
             ];
         
             if (best) {
@@ -311,6 +297,7 @@
             document.getElementById('settings-area').style.visibility = 'hidden';
             startBtn.classList.add('hidden');
             checkBtn.classList.remove('hidden');
+            checkBtn.disabled = true;
             generateSafeProblems();
             startTimer();
         });
@@ -342,17 +329,21 @@
                         generatedProblems.push({ id: i, ans: ans });
                         const div = document.createElement('div');
                         div.className = 'problem-item';
-                        div.innerHTML = `<span class="problem-text">${n1} ${op} ${n2} = </span><input type="number" pattern="[0-9]*" inputmode="numeric" id="inp-${i}" data-id="${i}">`;
+                        div.innerHTML = `<span class="problem-text">${n1} ${op} ${n2} = </span><input type="number" pattern="[0-9]*" inputmode="numeric" class="math-input" id="inp-${i}" data-id="${i}">`;
                         container.appendChild(div);
                     }
                 }
             }
 
-            const inputs = document.querySelectorAll('input');
-            inputs.forEach((inp, idx) => {
-                inp.addEventListener('input', () => {
-                    checkBtn.disabled = !Array.from(inputs).every(i => i.value !== '');
+            const activeInputs = document.querySelectorAll('.math-input');
+            activeInputs.forEach((inp, idx) => {
+                ['input', 'change', 'keyup'].forEach(evt => {
+                    inp.addEventListener(evt, () => {
+                        const allFilled = Array.from(activeInputs).every(input => input.value.trim() !== '');
+                        checkBtn.disabled = !allFilled;
+                    });
                 });
+
                 inp.addEventListener('keydown', (e) => {
                     if(e.key === 'Enter') {
                         const next = document.getElementById(`inp-${idx+1}`);
@@ -376,7 +367,7 @@
             elapsedBeforePause += (Date.now() - startTime);
             attemptsCount++;
 
-            const inputs = document.querySelectorAll('input');
+            const inputs = document.querySelectorAll('.math-input');
             let currentErrors = 0;
             inputs.forEach(inp => {
                 inp.disabled = true;
@@ -399,7 +390,7 @@
         });
 
         fixBtn.addEventListener('click', () => {
-            const inputs = document.querySelectorAll('input');
+            const inputs = document.querySelectorAll('.math-input');
             let first = null;
             inputs.forEach(inp => {
                 if(inp.classList.contains('incorrect')) {
@@ -428,10 +419,8 @@
             document.getElementById('win-title').textContent = isNew ? "НОВЫЙ РЕКОРД! 🏆" : "ВСЁ ВЕРНО!";
             
             document.getElementById('win-text').innerHTML = `
-                ${userName || 'Друг'}, время: ${formatTime(totalTime)}<br>
-                <span style="font-size: 0.9rem; font-weight: normal; color: #666;">
-                    Попыток: ${attemptsCount} | Всего ошибок: ${totalErrorsCount}
-                </span>
+                <b>${userName || 'Друг'}</b>, время: ${formatTime(totalTime)}<br>
+                <small style="color: #666;">Попыток: ${attemptsCount} | Ошибок: ${totalErrorsCount}</small>
             `;
             
             sendStats(userName, diff, quant, formatTime(totalTime), attemptsCount, totalErrorsCount);
@@ -453,7 +442,7 @@
         }
 
         function launchConfetti() {
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 80; i++) {
                 const c = document.createElement('div');
                 c.className = 'confetti';
                 c.style.left = Math.random() * 100 + 'vw';
