@@ -301,32 +301,27 @@
         function updateRecord() {
             const diff = difficultySelect.value;
             const quant = quantitySelect.value;
-            const best = localStorage.getItem(`best-${diff}-${quant}`);
+            const bestScore = localStorage.getItem(`score-${diff}-${quant}`);
             const name = userName || "Друг";
             
-            // Мотивация в зависимости от сложности
-            let levelText = "";
-            if (diff == "20") levelText = "Разминка!";
-            if (diff == "30") levelText = "Уже серьезно!";
-            if (diff == "40") levelText = "Уровень Профи!";
-            if (diff == "50") levelText = "Настоящий Чемпион!";
-        
             const phrases = [
-                `${name}, ты сможешь побить рекорд!`,
-                `Попробуешь быстрее на сложности ${diff}, ${name}?`,
-                `${levelText} Давай поднажмем!`,
-                `Отличная тренировка для мозга`,
-                `У тебя все получится, ${name}`,
-                `${name}, сложность ${diff} тебя боится!`,
-                `${name}, покажи класс на ${diff}!`,
-                `О, ${name}, для тебя уровень ${diff} уже слишком легкий!`
+                `🔥 Мега-мозг! Твой рекорд — просто космос, ${name}!`,
+                `🏆 Золотой кубок твой! Кто сможет быстрее, чем ${name}?`,
+                `⚡ Молниеносный результат! Твои пальцы просто летают!`,
+                `💪 Сильно! Ты явно тренируешься каждый день, ${name}!`,
+                `✨ Хороший темп! Еще пара заходов, и будет новый рекорд!`,
+                `📈 Идешь в гору! Главное — не останавливаться, ${name}!`,
+                `🚀 Полет нормальный! Ты уже на полпути к званию Магистра!`,
+                `🧐 Неплохо для начала, но мы-то знаем, что ты можешь круче!`,
+                `🐢 Тише едешь — меньше ошибок! Но давай попробуем чуть быстрее?`,
+                `🎮 Почти как в игре! Давай еще разок, побьем этот счет?`
             ];
         
-            if (best) {
+            if (bestScore) {
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                recordDisplay.textContent = `🏆 Рекорд (${diff}): ${formatTime(parseInt(best))}.    ${randomPhrase}`;
+                recordDisplay.innerHTML = `🏆 Рекорд (${diff} до): <span style="color:#5d5fef;">${bestScore} баллов</span>. ${randomPhrase}`;
             } else {
-                recordDisplay.textContent = `${levelText} Удачи, ${name}!`;
+                recordDisplay.textContent = `Привет, ${name}! Выбирай сложность и начни свой первый рекорд!`;
             }
         }
 
@@ -484,25 +479,55 @@
 
         function handleWin(totalTime) {
             const diff = difficultySelect.value;
-            const quant = quantitySelect.value;
-            const key = `best-${diff}-${quant}`;
-            const prev = localStorage.getItem(key);
-            let isNew = !prev || totalTime < parseInt(prev);
-            if(isNew) localStorage.setItem(key, totalTime);
-
-            document.getElementById('win-screen').classList.remove('hidden');
-            document.getElementById('win-title').textContent = isNew ? "НОВЫЙ РЕКОРД! 🏆" : "ВСЁ ВЕРНО!";
+            const quant = parseInt(quantitySelect.value);
             
+            // --- ЛОГИКА БАЛЛОВ ---
+            const basePoints = quant * 50; // База: 50 очков за каждый пример
+            const avgTime = totalTime / quant; // Среднее время на один пример (мс)
+            
+            // Бонус за скорость: чем меньше avgTime, тем выше бонус. 
+            // Если среднее время 2 сек (2000мс) - бонус 50 очков на пример.
+            // Если среднее время 10 сек (10000мс) - бонус 0.
+            let speedBonus = Math.max(0, (10000 - avgTime) / 160) * quant; 
+            
+            // Штраф за ошибки (каждая ошибка -25 баллов)
+            const penalty = totalErrorsCount * 25;
+            
+            // Итоговый счет (округляем)
+            let finalScore = Math.round(basePoints + speedBonus - penalty);
+            if (finalScore < 0) finalScore = 0; 
+            // ---------------------
+        
+            const key = `score-${diff}-${quant}`;
+            const prevScore = localStorage.getItem(key);
+            let isNew = !prevScore || finalScore > parseInt(prevScore); // Теперь рекорд - это БОЛЬШЕ баллов
+            
+            if(isNew) localStorage.setItem(key, finalScore);
+        
+            document.getElementById('win-screen').classList.remove('hidden');
+            document.getElementById('win-title').textContent = isNew ? "НОВЫЙ РЕКОРД! 🏆" : "ОТЛИЧНЫЙ РЕЗУЛЬТАТ!";
+            
+            let message = "";
+            if (finalScore > 1000) message = "Ты — Магистр Математики! ⚡";
+            else if (finalScore > 500) message = "Просто красавчик! 🔥";
+            else message = "Хорошее начало, поднажми! 💪";
+        
             document.getElementById('win-text').innerHTML = `
-                <b>${userName || 'Друг'}</b>, время: ${formatTime(totalTime)}<br>
-                <small style="color: #666;">Попыток: ${attemptsCount} | Ошибок: ${totalErrorsCount}</small>
+                <div style="font-size: 2rem; color: var(--primary-color); font-weight: bold; margin-bottom: 10px;">
+                    ${finalScore} баллов
+                </div>
+                <b>${userName || 'Друг'}</b>, ${message}<br>
+                <small style="color: #666;">
+                    Время: ${formatTime(totalTime)} | Ошибок: ${totalErrorsCount}
+                </small>
             `;
             
-            sendStats(userName, diff, quant, formatTime(totalTime), attemptsCount, totalErrorsCount);
+            // В статистику теперь тоже шлем баллы (я добавил их в конец)
+            sendStats(userName, diff, quant, formatTime(totalTime), attemptsCount, totalErrorsCount, finalScore);
             launchConfetti();
         }
-
-        function sendStats(name, d, q, t, att, err) {
+        
+        function sendStats(name, d, q, t, att, err, score) {
             const formURL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSdsXsTu5ELNWJ7FpEqvuhTmeg-xB-SeM7BusWXEoJKRw_ZzLQ/formResponse";
             const data = new FormData();
             
@@ -512,7 +537,8 @@
             data.append('entry.2084879920', t);
             data.append('entry.252348588', att); 
             data.append('entry.214214511', err);
-
+            data.append('entry.922859322', score); 
+        
             fetch(formURL, { method: 'POST', mode: 'no-cors', body: data });
         }
 
