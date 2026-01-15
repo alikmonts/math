@@ -185,11 +185,13 @@
         
         <div class="settings-container" id="settings-area">
             <div class="settings-row">
-                <label>До:</label>
+                <label>Цифры до:</label>
                 <select id="difficulty">
                     <option value="20" selected>20</option>
+                    <option value="30">30</option>
+                    <option value="40">40</option>
                     <option value="50">50</option>
-                    <option value="100">100</option>
+                </select>
                 </select>
             </div>
             <div class="settings-row">
@@ -297,22 +299,31 @@
         });
 
         function updateRecord() {
-            const best = localStorage.getItem(`best-${difficultySelect.value}-${quantitySelect.value}`);
+            const diff = difficultySelect.value;
+            const quant = quantitySelect.value;
+            const best = localStorage.getItem(`best-${diff}-${quant}`);
             const name = userName || "Друг";
             
+            // Мотивация в зависимости от сложности
+            let levelText = "";
+            if (diff == "20") levelText = "Разминка!";
+            if (diff == "30") levelText = "Уже серьезно!";
+            if (diff == "40") levelText = "Уровень Профи!";
+            if (diff == "50") levelText = "Настоящий Чемпион!";
+        
             const phrases = [
                 `${name}, ты сможешь побить рекорд!`,
-                `Попробуешь быстрее, ${name}?`,
-                `Это отличный результат, ${name}!`,
-                `${name}, ты молодец, давай ещё!`,
-                `У тебя здорово получается, ${name}!`
+                `Попробуешь быстрее на сложности ${diff}, ${name}?`,
+                `${levelText} Давай поднажмем!`,
+                `Отличная тренировка для 2-4 класса!`,
+                `${name}, покажи класс на ${diff}!`
             ];
         
             if (best) {
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                recordDisplay.textContent = `🏆 Рекорд: ${formatTime(parseInt(best))}. ${randomPhrase}`;
+                recordDisplay.textContent = `🏆 Рекорд (${diff}): ${formatTime(parseInt(best))}. ${randomPhrase}`;
             } else {
-                recordDisplay.textContent = `Удачи, ${name}! У тебя всё получится!`;
+                recordDisplay.textContent = `${levelText} Удачи, ${name}!`;
             }
         }
 
