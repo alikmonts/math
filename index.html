@@ -44,7 +44,7 @@
         header { padding-top: 10px; flex-shrink: 0; }
         h1 { margin: 0; font-size: 1.4rem; color: var(--primary-color); }
         
-        .record-display { font-size: 0.9rem; color: #ff9f43; font-weight: bold; margin: 5px 0; height: 1.2em; }
+        .record-display { font-size: 0.9rem; color: #ff9f43; font-weight: bold; margin: 5px 0; min-height: 1.2em; }
 
         .settings-container {
             display: flex; flex-direction: row; gap: 20px;
@@ -145,12 +145,11 @@
             background: rgba(0,0,0,0.6); 
             display: flex; 
             justify-content: center; 
-            align-items: center; /* По умолчанию по центру */
+            align-items: center; 
             z-index: 2000;
-            transition: align-items 0.3s ease; /* Плавный переход */
+            transition: align-items 0.3s ease;
         }
 
-        /* Когда клавиатура открыта, поднимаем окно выше */
         .win-overlay.keyboard-open {
             align-items: flex-start;
             padding-top: 50px;
@@ -192,15 +191,12 @@
                     <option value="40">40</option>
                     <option value="50">50</option>
                 </select>
-                </select>
             </div>
             <div class="settings-row">
                 <label>Кол-во:</label>
                 <select id="quantity">
-                    <option value="10">10</option>
-                    <option value="20" selected>20</option>
+                    <option value="15" selected>15</option>
                     <option value="30">30</option>
-                    <option value="50">50</option>
                 </select>
             </div>
         </div>
@@ -258,25 +254,15 @@
         const nameInput = document.getElementById('user-name-input');
         const nameModalOverlay = document.getElementById('name-modal');
 
-        // Поднимаем окно, когда инпут в фокусе (клавиатура вылезает)
         nameInput.addEventListener('focus', () => {
             nameModalOverlay.classList.add('keyboard-open');
-            // Небольшая задержка, чтобы браузер успел отрисовать клавиатуру
-            setTimeout(() => {
-                nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
+            setTimeout(() => { nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
         });
 
-        // Возвращаем на место, когда фокус уходит
-        nameInput.addEventListener('blur', () => {
-            nameModalOverlay.classList.remove('keyboard-open');
-        });
+        nameInput.addEventListener('blur', () => { nameModalOverlay.classList.remove('keyboard-open'); });
         
-        // Обработка кнопки Enter на клавиатуре телефона
         nameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('save-name-btn').click();
-            }
+            if (e.key === 'Enter') { document.getElementById('save-name-btn').click(); }
         });
 
         function checkUser() {
@@ -286,7 +272,6 @@
                 updateRecord();
             }
         }
-        
 
         document.getElementById('save-name-btn').addEventListener('click', () => {
             const input = document.getElementById('user-name-input');
@@ -319,7 +304,7 @@
         
             if (bestScore) {
                 const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                recordDisplay.innerHTML = `🏆 Рекорд (${diff} до): <span style="color:#5d5fef;">${bestScore} баллов</span>. ${randomPhrase}`;
+                recordDisplay.innerHTML = `🏆 Рекорд (${diff} до, ${quant} шт): <span style="color:#5d5fef;">${bestScore} баллов</span>. <br><span style="font-weight:normal; font-size:0.8rem; color:#666;">${randomPhrase}</span>`;
             } else {
                 recordDisplay.textContent = `Привет, ${name}! Выбирай сложность и начни свой первый рекорд!`;
             }
@@ -349,12 +334,15 @@
         startBtn.addEventListener('click', () => {
             attemptsCount = 0;
             totalErrorsCount = 0;
+            elapsedBeforePause = 0;
             document.getElementById('settings-area').style.visibility = 'hidden';
             startBtn.classList.add('hidden');
             checkBtn.classList.remove('hidden');
             checkBtn.disabled = true;
             generateSafeProblems();
             startTimer();
+            // Подъем к первому инпуту
+            window.scrollTo({ top: 100, behavior: 'smooth' });
         });
 
         function generateSafeProblems() {
@@ -366,29 +354,22 @@
             const usedPairs = new Set();
             for (let i = 0; i < count; i++) {
                 let n1, n2, op, ans, key, found = false;
-                let attempts = 0; // Чтобы не зависнуть в цикле
+                let attempts = 0; 
         
                 while(!found && attempts < 100) {
                     attempts++;
                     op = Math.random() > 0.5 ? '+' : '-';
-                    
                     if (op === '+') {
-                        ans = Math.floor(Math.random() * (max - 10)) + 10; // Ответ хотя бы от 10
+                        ans = Math.floor(Math.random() * (max - 10)) + 10;
                         n1 = Math.floor(Math.random() * (ans - 4)) + 2;
                         n2 = ans - n1;
-                        
-                        // ЛОГИКА: Исключаем слишком легкие (где n1 или n2 меньше 3)
                         if (n1 < 3 || n2 < 3) continue; 
-                        
                         key = `sum_${Math.min(n1, n2)}_${Math.max(n1, n2)}`;
                     } else {
-                        n1 = Math.floor(Math.random() * (max - 10)) + 10; // Первое число хотя бы от 10
+                        n1 = Math.floor(Math.random() * (max - 10)) + 10;
                         n2 = Math.floor(Math.random() * (n1 - 4)) + 2;
                         ans = n1 - n2;
-        
-                        // ЛОГИКА: Исключаем вычитание единицы или слишком мелких чисел
                         if (n2 < 3 || ans < 3) continue;
-        
                         key = `sub_${n1}_${n2}`;
                     }
         
@@ -396,7 +377,6 @@
                         usedPairs.add(key);
                         found = true;
                         generatedProblems.push({ id: i, ans: ans });
-                        
                         const div = document.createElement('div');
                         div.className = 'problem-item';
                         div.innerHTML = `<span class="problem-text">${n1} ${op} ${n2} = </span><input type="number" pattern="[0-9]*" inputmode="numeric" class="math-input" id="inp-${i}" data-id="${i}">`;
@@ -405,7 +385,6 @@
                 }
             }
         
-            // Блок активации кнопки
             const activeInputs = document.querySelectorAll('.math-input');
             activeInputs.forEach((inp, idx) => {
                 ['input', 'change', 'keyup'].forEach(evt => {
@@ -478,23 +457,29 @@
         });
 
         function handleWin(totalTime) {
-            const diff = difficultySelect.value;
-            const quant = parseInt(quantitySelect.value);
+            const d = parseInt(difficultySelect.value);
+            const q = parseInt(quantitySelect.value);
+            const avgTime = totalTime / q;
+
+            // НОВАЯ ФОРМУЛА "БАЛАНС"
+            // База за скорость (от 0 до 800)
+            let baseSpeed = Math.max(0, (10000 - avgTime) / 160) * q; 
+            let pointsPerEx = 50;
             
-            // Базовые очки (50 за пример)
-            const basePoints = quant * 50; 
-            const avgTime = totalTime / quant; 
+            // Коэффициенты
+            let diffKoef = { '20': 1.0, '30': 1.1, '40': 1.2, '50': 1.3 }[d];
+            let volKoef = q === 15 ? 1.0 : 1.05; // 5% бонус за выносливость
             
-            // Бонус за скорость (макс 62.5 очков на пример при 0 сек)
-            let speedBonus = Math.max(0, (10000 - avgTime) / 160) * quant; 
+            // Штраф за ошибки (зависит от количества примеров)
+            let penaltyPerError = 1000 / q;
+            let penalty = totalErrorsCount * penaltyPerError;
+
+            // Расчет (приводим к масштабу 1000)
+            let rawScore = ((q * pointsPerEx + baseSpeed) * diffKoef * volKoef) / (q/10);
+            let finalScore = Math.round((rawScore / 10) - penalty);
             
-            // Штраф (25 за каждую ошибку)
-            const penalty = totalErrorsCount * 25;
-            
-            let finalScore = Math.round(basePoints + speedBonus - penalty);
             if (finalScore < 0) finalScore = 0; 
         
-            // ОПРЕДЕЛЕНИЕ ЗВАНИЯ
             let rank = "";
             let icon = "";
             if (finalScore >= 1100) { rank = "МАТЕМАТИЧЕСКИЙ БОГ"; icon = "👑"; }
@@ -504,10 +489,9 @@
             else if (finalScore >= 301) { rank = "СЧЕТОВОД"; icon = "🧮"; }
             else { rank = "НОВИЧОК"; icon = "👶"; }
         
-            const key = `score-${diff}-${quant}`;
+            const key = `score-${d}-${q}`;
             const prevScore = localStorage.getItem(key);
             let isNew = !prevScore || finalScore > parseInt(prevScore);
-            
             if(isNew) localStorage.setItem(key, finalScore);
         
             document.getElementById('win-screen').classList.remove('hidden');
@@ -518,22 +502,21 @@
                     ${finalScore} баллов
                 </div>
                 <div style="font-size: 1.2rem; font-weight: bold; color: #ff9f43; margin-bottom: 15px;">
-                    ${icon} ТВОЙ РАНГ: ${rank}
+                    ${icon} РАНГ: ${rank}
                 </div>
                 <b>${userName || 'Друг'}</b>, отличная работа!<br>
                 <small style="color: #666;">
-                    Время: ${formatTime(totalTime)} | Ошибок: ${totalErrorsCount}
+                    Время: ${(totalTime/1000).toFixed(1)}с | Ошибок: ${totalErrorsCount}
                 </small>
             `;
             
-            sendStats(userName, diff, quant, formatTime(totalTime), attemptsCount, totalErrorsCount, finalScore);
+            sendStats(userName, d, q, formatTime(totalTime), attemptsCount, totalErrorsCount, finalScore);
             launchConfetti();
         }
         
         function sendStats(name, d, q, t, att, err, score) {
             const formURL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSdsXsTu5ELNWJ7FpEqvuhTmeg-xB-SeM7BusWXEoJKRw_ZzLQ/formResponse";
             const data = new FormData();
-            
             data.append('entry.309318439', name || 'Anon'); 
             data.append('entry.430428867', d);
             data.append('entry.1953412766', q);
@@ -541,7 +524,6 @@
             data.append('entry.252348588', att); 
             data.append('entry.214214511', err);
             data.append('entry.922859322', score); 
-        
             fetch(formURL, { method: 'POST', mode: 'no-cors', body: data });
         }
 
