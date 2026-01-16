@@ -457,49 +457,47 @@
         });
 
         function handleWin(totalTime) {
-            const d = parseInt(difficultySelect.value);
-            const q = parseInt(quantitySelect.value);
+            const d = parseInt(difficultySelect.value); 
+            const q = parseInt(quantitySelect.value);   
             
-            // 1. Считаем процент правильных ответов (от 0 до 1)
-            // Ошибки не могут сделать результат отрицательным
-            let accuracy = Math.max(0, (q - totalErrorsCount) / q);
+            // 1. Устанавливаем "Потолок" баллов согласно твоей логике
+            let maxPossibleScore = 850; // По умолчанию (До 20)
+            if (d === 30) maxPossibleScore = 900;
+            else if (d === 40) maxPossibleScore = 950;
+            else if (d >= 50) maxPossibleScore = 1000;
+
+            // 2. Считаем качество прохождения по времени (0.0 - 1.0)
+            // Идеал: 2 сек на пример. Лимит: 10 сек на пример.
+            const timePerQuestion = totalTime / q;
+            const perfectS = 2000; 
+            const maxS = 10000;
             
-            // 2. Считаем бонус за скорость (от 0 до 1)
-            // Даем 2.5 секунды на пример для идеального счета. 
-            // Если дольше 15 секунд на пример — бонус сгорает.
-            const perfectTime = q * 2500; 
-            const maxTime = q * 15000;
             let speedFactor = 0;
-            
-            if (totalTime <= perfectTime) {
-                speedFactor = 1;
-            } else if (totalTime >= maxTime) {
-                speedFactor = 0;
+            if (timePerQuestion <= perfectS) {
+                speedFactor = 1.0;
+            } else if (timePerQuestion >= maxS) {
+                speedFactor = 0.4; // База за решение, даже если медленно
             } else {
-                // Плавное падение бонуса между 2.5с и 15с на пример
-                speedFactor = 1 - ((totalTime - perfectTime) / (maxTime - perfectTime));
+                // Линейное падение от 1.0 до 0.4
+                speedFactor = 1.0 - (0.6 * (timePerQuestion - perfectS) / (maxS - perfectS));
             }
 
-            // 3. Коэффициент сложности (До 20 = 0.7, До 50 = 1.0)
-            const difficultyFactor = 0.5 + (d / 100);
-
-            // ИТОГОВЫЙ РАСЧЕТ
-            // (База 700 за точность + 300 за скорость) * коэффициент сложности
-            let score = (accuracy * 700 + speedFactor * 300) * difficultyFactor;
+            // 3. Итоговый расчет
+            // Берем долю от макс. баллов в зависимости от скорости
+            // И вычитаем штраф за ошибки (каждая ошибка - минус 100 баллов)
+            let finalScore = Math.round((maxPossibleScore * speedFactor) - (totalErrorsCount * 100));
             
-            let finalScore = Math.round(score);
-
-            // ЖЕСТКИЕ КРАЯ: от 0 до 1000 и ни баллом больше/меньше
-            if (finalScore > 1000) finalScore = 1000;
+            // Жесткие лимиты, чтобы не вылезти за 1000 или в минус
+            if (finalScore > maxPossibleScore) finalScore = maxPossibleScore;
             if (finalScore < 0) finalScore = 0; 
         
+            // Ранги (теперь они динамические относительно потолка)
             let rank = "";
             let icon = "";
-            if (finalScore >= 950) { rank = "МАТЕМАТИЧЕСКИЙ БОГ"; icon = "👑"; }
-            else if (finalScore >= 800) { rank = "ЛЕГЕНДА"; icon = "🏆"; }
-            else if (finalScore >= 650) { rank = "МАГИСТР"; icon = "⚡"; }
-            else if (finalScore >= 450) { rank = "ПРОФИ"; icon = "🔥"; }
-            else if (finalScore >= 200) { rank = "СЧЕТОВОД"; icon = "🧮"; }
+            if (finalScore >= (maxPossibleScore - 20)) { rank = "МАТЕМАТИЧЕСКИЙ БОГ"; icon = "👑"; }
+            else if (finalScore >= (maxPossibleScore * 0.8)) { rank = "ЛЕГЕНДА"; icon = "🏆"; }
+            else if (finalScore >= (maxPossibleScore * 0.6)) { rank = "МАГИСТР"; icon = "⚡"; }
+            else if (finalScore >= (maxPossibleScore * 0.4)) { rank = "ПРОФИ"; icon = "🔥"; }
             else { rank = "НОВИЧОК"; icon = "👶"; }
         
             const key = `score-${d}-${q}`;
